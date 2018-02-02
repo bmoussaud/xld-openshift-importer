@@ -33,7 +33,11 @@ class OpenshitImporter:
                         deployable = self.dump_resource(item)
                         if deployable is not None:
                             deployables.append(deployable)
-
+                if data['kind'] == 'Template':
+                    for item in data['objects']:
+                        deployable = self.dump_resource(item)
+                        if deployable is not None:
+                            deployables.append(deployable)
             except yaml.YAMLError as exc:
                 print(exc)
 
@@ -44,13 +48,14 @@ class OpenshitImporter:
         ts = time.time()
         version = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
         manifest_content = self.generate_manifest_content('parksmap', version, deployables)
+        print(manifest_content)
         with open("{0}/deployit-manifest.xml".format(self.work_directory), "w") as text_file:
             print(manifest_content, file=text_file)
 
         self.zip()
 
     def dump_resource(self, item):
-        managed_resources = ['Route', 'DeploymentConfig', 'Service']
+        managed_resources = ['Route', 'DeploymentConfig', 'Service','PersistentVolumeClaim','RoleBinding']
         if item['kind'] in managed_resources:
             name = "{0}-{1}".format(item['kind'], item['metadata']['name']).lower()
             filename = "{1}/{0}.yaml".format(name, self.work_directory).lower()
@@ -58,6 +63,7 @@ class OpenshitImporter:
                 yaml.dump(item, outfile, default_flow_style=False)
             return {'type': 'openshift.ResourcesFile', 'name': name, 'file': filename}
         else:
+            #print("NOT SUPPORTED {0}".format(item['kind']))
             return None
 
     def generate_manifest_content(self, application_name, version, deployables):
@@ -75,4 +81,4 @@ class OpenshitImporter:
             zf.close()
 
 
-OpenshitImporter("./test/workshop-parksmap.yaml").process()
+OpenshitImporter("test/coolstore-deployment-template.yaml").process()
