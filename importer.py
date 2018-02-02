@@ -17,8 +17,9 @@ class OpenshitImporter:
     </deployables></udm.DeploymentPackage>
     """
 
-    def __init__(self, file_path, work_directory="./work"):
+    def __init__(self, application_name, file_path, work_directory="./work"):
         self.file_path = file_path
+        self.application_name = application_name
         self.work_directory = work_directory
         if not os.path.exists(self.work_directory):
             os.makedirs(self.work_directory)
@@ -48,8 +49,8 @@ class OpenshitImporter:
         deployables = self._deployables()
         ts = time.time()
         version = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
-        manifest_content = self.generate_manifest_content('parksmap', version, deployables)
-        #print(manifest_content)
+        manifest_content = self.generate_manifest_content(self.application_name, version, deployables)
+        # print(manifest_content)
         with open("{0}/deployit-manifest.xml".format(self.work_directory), "w") as text_file:
             print(manifest_content, file=text_file)
 
@@ -92,4 +93,4 @@ class OpenshitImporter:
             zf.close()
 
 
-OpenshitImporter("test/coolstore-deployment-template.yaml").process()
+OpenshitImporter("coolstore", "test/coolstore-deployment-template.yaml").process()
