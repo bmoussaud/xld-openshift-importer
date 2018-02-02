@@ -27,17 +27,14 @@ class OpenshitImporter:
         deployables = []
         with open(self.file_path, 'r') as stream:
             try:
-                data = yaml.load(stream)
-                print(data)
+                data = yaml.safe_load(stream)
+                # print(data)
                 if data['kind'] == 'List':
                     for item in data['items']:
                         deployable = self.dump_resource(item)
                         if deployable is not None:
                             deployables.append(deployable)
                 if data['kind'] == 'Template':
-                    for item in data['parameters']:
-                        print(item)
-
                     for item in data['objects']:
                         deployable = self.dump_resource(item)
                         if deployable is not None:
@@ -52,7 +49,7 @@ class OpenshitImporter:
         ts = time.time()
         version = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
         manifest_content = self.generate_manifest_content('parksmap', version, deployables)
-        print(manifest_content)
+        #print(manifest_content)
         with open("{0}/deployit-manifest.xml".format(self.work_directory), "w") as text_file:
             print(manifest_content, file=text_file)
 
