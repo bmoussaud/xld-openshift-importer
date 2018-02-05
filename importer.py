@@ -17,10 +17,11 @@ class OpenshitImporter:
     </deployables></udm.DeploymentPackage>
     """
 
-    def __init__(self, application_name, file_path, work_directory="./work"):
+    def __init__(self, application_name, file_path, work_directory="./work", filter_app_resource=True):
         self.file_path = file_path
         self.application_name = application_name
         self.work_directory = work_directory
+        self.filter_app_resource = filter_app_resource
         if not os.path.exists(self.work_directory):
             os.makedirs(self.work_directory)
 
@@ -32,18 +33,15 @@ class OpenshitImporter:
                 # print(data)
                 if data['kind'] == 'List':
                     for item in data['items']:
-                        deployable = self.dump_resource(item)
-                        if deployable is not None:
-                            deployables.append(deployable)
+                        deployables.append(self.dump_resource(item))
+
                 if data['kind'] == 'Template':
                     for item in data['objects']:
-                        deployable = self.dump_resource(item)
-                        if deployable is not None:
-                            deployables.append(deployable)
+                        deployables.append(self.dump_resource(item))
             except yaml.YAMLError as exc:
                 print(exc)
 
-        return deployables
+        return [d for d in deployables if d is not None]
 
     def process(self):
         deployables = self._deployables()
@@ -66,16 +64,21 @@ class OpenshitImporter:
                 data = "{0}{{{1}}}{2}".format(match_obj.group(1), match_obj.group(2), match_obj.group(3))
             return dumper.represent_scalar('tag:yaml.org,2002:str', data.strip())
 
-        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim','ImageStream']
+        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim', 'ImageStream']
+        metadata_name_ = item['metadata']['name']
+        if self.filter_app_resource and not self.application_name in metadata_name_:
+            return None
+
         if item['kind'] in managed_resources:
-            name = "{0}-{1}".format(item['kind'], item['metadata']['name']).lower()
+            print("SUPPORTED {}/{}".format(item['kind'], metadata_name_))
+            name = "{0}-{1}".format(item['kind'], metadata_name_).lower()
             filename = "{1}/{0}.yaml".format(name, self.work_directory).lower()
             with open(filename, 'w') as outfile:
                 yaml.add_representer(str, str_presenter)
                 yaml.dump(item, outfile, default_flow_style=False)
             return {'type': 'openshift.ResourcesFile', 'name': name, 'file': filename}
         else:
-            print("NOT SUPPORTED {0}".format(item['kind']))
+            print("NOT SUPPORTED {}/{}".format(item['kind'], metadata_name_))
             return None
 
     def generate_manifest_content(self, application_name, version, deployables):
@@ -93,4 +96,4 @@ class OpenshitImporter:
             zf.close()
 
 
-OpenshitImporter("coolstore", "test/coolstore-template.yaml").process()
+OpenshitImporter("inventory", "test/coolstore-template.yaml").process()
