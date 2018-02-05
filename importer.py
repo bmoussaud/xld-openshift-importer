@@ -66,7 +66,7 @@ class OpenshitImporter:
                 data = "{0}{{{1}}}{2}".format(match_obj.group(1), match_obj.group(2), match_obj.group(3))
             return dumper.represent_scalar('tag:yaml.org,2002:str', data.strip())
 
-        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim', 'RoleBinding']
+        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim','ImageStream']
         if item['kind'] in managed_resources:
             name = "{0}-{1}".format(item['kind'], item['metadata']['name']).lower()
             filename = "{1}/{0}.yaml".format(name, self.work_directory).lower()
@@ -75,7 +75,7 @@ class OpenshitImporter:
                 yaml.dump(item, outfile, default_flow_style=False)
             return {'type': 'openshift.ResourcesFile', 'name': name, 'file': filename}
         else:
-            # print("NOT SUPPORTED {0}".format(item['kind']))
+            print("NOT SUPPORTED {0}".format(item['kind']))
             return None
 
     def generate_manifest_content(self, application_name, version, deployables):
@@ -93,4 +93,4 @@ class OpenshitImporter:
             zf.close()
 
 
-OpenshitImporter("coolstore", "test/coolstore-deployment-template.yaml").process()
+OpenshitImporter("coolstore", "test/coolstore-template.yaml").process()
