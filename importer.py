@@ -47,9 +47,12 @@ class OpenshitImporter:
         deployables = self._deployables()
         ts = time.time()
         version = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
+        version = "@APP_VERSION@"
         manifest_content = self.generate_manifest_content(self.application_name, version, deployables)
         # print(manifest_content)
         with open("{0}/deployit-manifest.xml".format(self.work_directory), "w") as text_file:
+            print(manifest_content, file=text_file)
+        with open("{0}/deployit-manifest.xml.bak".format(self.work_directory), "w") as text_file:
             print(manifest_content, file=text_file)
 
         self.zip()
@@ -64,15 +67,23 @@ class OpenshitImporter:
                 data = "{0}{{{1}}}{2}".format(match_obj.group(1), match_obj.group(2), match_obj.group(3))
             return dumper.represent_scalar('tag:yaml.org,2002:str', data.strip())
 
-        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim', 'ImageStream']
+        # managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim', 'ImageStream']
+        managed_resources = ['Route', 'DeploymentConfig', 'Service', 'PersistentVolumeClaim']
         metadata_name_ = item['metadata']['name']
         if self.filter_app_resource and not self.application_name in metadata_name_:
             return None
 
         if item['kind'] in managed_resources:
             print("SUPPORTED {}/{}".format(item['kind'], metadata_name_))
+            registry = "docker-registry.default.svc:5000"
             name = "{0}-{1}".format(item['kind'], metadata_name_).lower()
             filename = "{1}/{0}.yaml".format(name, self.work_directory).lower()
+            if item['kind'] == 'DeploymentConfig':
+                image = "{}/coolstore-dev/{}:@APP_VERSION@".format(registry,
+                                                                   item['spec']['template']['spec']['containers'][0]['image'])
+                print('image is {} '.format(image))
+                item['spec']['template']['spec']['containers'][0]['image']=image
+                filename = "{1}/{0}.yaml.bak".format(name, self.work_directory).lower()
             with open(filename, 'w') as outfile:
                 yaml.add_representer(str, str_presenter)
                 yaml.dump(item, outfile, default_flow_style=False)
@@ -96,4 +107,4 @@ class OpenshitImporter:
             zf.close()
 
 
-OpenshitImporter("inventory", "test/coolstore-template.yaml").process()
+OpenshitImporter("gw", "test/coolstore-template.yaml").process()
